@@ -1,0 +1,502 @@
+package G8NumberTheory;
+
+
+import android.content.Intent;
+import android.graphics.Color;
+import android.provider.Settings.Secure;
+import android.Manifest;
+import android.content.ContentValues;
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
+import android.content.ContentProvider;
+import android.media.MediaPlayer;
+import android.os.Build;
+import android.os.Handler;
+import android.support.constraint.solver.ArrayLinkedVariables;
+import android.support.v4.app.ActivityCompat;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.text.Layout;
+import android.view.View;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import static android.app.PendingIntent.getActivity;
+
+public class MainActivity extends AppCompatActivity {
+
+    public static final int totalQuest = 23;
+    int questCount = 0; //count the question
+    int questSubcount = 0; //count the times of doing similar questions
+    int pagePassword = 2; //page that requires password
+    int falseInSubQuest = 0; //times of false in a question
+    int answered = 0; //answered a MC already? Yes-1, No-0
+    int labelTag = 0; //to recognize which label is pressed
+    int viewTag = 0; //to recognize which view is pressed
+    int ThisIsCorrect = 0;//to record the question is correctly answered
+    int[] oldScore = {0, 0, 0};//start of the animation of score increase
+    int[] newScore = {0, 0, 0}; //end of the animation of score increase
+    int currentScore = 0; //current score of the animation of score increase
+    int digit = 0; //which digit animating
+    int wooden0Digit = 0; //number of digits of whole number
+    double wooden0LastValue = 1.0; //the value of last digit of whole number
+    int wooden0DecNum = -1; //number of decimals of whole number
+    double[] woodenValue = {0.0, 0.0, 0.0};//initialize the values of answer fraction
+    int woodenChosen = 3;//which wooden board the user is inputing[0, 1, 2], 3 means not choose yet
+    int buttonPressed = 0; //the R.id of the button pressed
+    int buttonIndex = -1; //the index of the button pressed in the array
+    int ansFormat = 1; //0 for MC, 1 for fill in the blank
+    int ID = 0; //create App ID by class + random number
+    double password = 0;
+    int[] passDigit = {0, 0, 0, 0, 0, 0};
+    String responseFile = "";
+    int maxCount = 9;    //Maximum Count to which label will be Updated
+    int currentCount = 0;     // Count which is currently displayed in Label
+    int form = 5; //exercise for class 5 2nd term
+    int term = 2; //exercise for class 5 2nd term
+    Timer timer;
+    TimerTask mTimerTask;
+    Handler handler = new Handler();
+
+    private static final int[] BUTTON_IDS = {
+            R.id.Image110, R.id.Image111, R.id.MImage112, R.id.MImage113, R.id.OOkButton, R.id.RRestart
+    };
+    private static final int[] BUTTON_Square = {
+            R.id.S0, R.id.S1, R.id.S2, R.id.S3, R.id.S4, R.id.S5,
+            R.id.S6, R.id.S7, R.id.S8, R.id.S9, R.id.Square10, R.id.SquareBackButton
+    };
+    private static final int[] BUTTON_Wooden = {
+            R.id.wooden0, R.id.wooden1, R.id.wooden2
+    };
+    private static final int[] MCColorID = {
+            R.id.LinearLayout110, R.id.LinearLayout111, R.id.LinearLayout112, R.id.LinearLayout113
+    };
+    TextView[] woodenNumber; //wooden board textView for changing the number
+    ImageView[] buttonsMC; //answer buttons for MC
+    LinearLayout[] MCButtonColor;//color buttons for MC
+    TextView OkButton; //Ok button textView for changing the text
+    TextView RestartButton; //Restart button
+    ImageView responseview;
+    ImageView questionview;
+    TextView TextID;
+    LinearLayout layoutMC;
+    LinearLayout layoutWooden;
+    LinearLayout layoutSquare;
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        final MediaPlayer click = MediaPlayer.create(this, R.raw.click);
+        final MediaPlayer clap = MediaPlayer.create(this, R.raw.clap);
+        final MediaPlayer ding = MediaPlayer.create(this, R.raw.ding);
+        final MediaPlayer chimes = MediaPlayer.create(this, R.raw.chimes);
+        //final MediaPlayer responsePlayer = MediaPlayer.create(this, R.raw.0_0_0);
+        //click.start();
+        //click.stop();
+        woodenNumber = new TextView[BUTTON_Wooden.length];
+        buttonsMC = new ImageView[BUTTON_IDS.length - 2];
+        responseview = (ImageView) findViewById(R.id.Response);
+        questionview = (ImageView) findViewById(R.id.Image0);
+        TextID = (TextView) findViewById(R.id.TextID);
+        layoutMC = (LinearLayout) findViewById(R.id.LinearLayout1_1_0);
+        layoutWooden = (LinearLayout) findViewById(R.id.LinearLayout1_2);
+        layoutSquare = (LinearLayout) findViewById(R.id.LinearLayout1_3);
+
+        String androidId = Secure.getString(getContentResolver(),
+                Secure.ANDROID_ID);
+        int androidIdInt = Integer.parseInt(androidId.substring(androidId.length() - 3), 16);
+        ID = (form * 10 + term) * 10000 + androidIdInt + 4869;
+
+
+        int IDTemp = ID;
+        int tens = 100000;
+        for (int i = 0; i < 6; i++) {
+            passDigit[i] = (int) (IDTemp / tens);
+            IDTemp -= passDigit[i] * tens;
+            tens = tens / 10;
+        }
+        password = Math.pow(passDigit[0], 3) * 17 + Math.pow(passDigit[1], 2) * 173 + Math.pow(passDigit[2], 3) * 83 + Math.pow(passDigit[3], 2) * 679 + passDigit[4] * 2989 + Math.pow(passDigit[5], 2) * 497;
+        TextID.setText("????????????       ID=" + String.valueOf(ID));
+
+        // buttons = new ArrayList<View>();
+        // or slightly better
+        // buttons = new ArrayList<Button>(BUTTON_IDS.length);
+
+
+
+
+        View.OnClickListener buttonListener = new View.OnClickListener(){
+            public void onClick(View v){
+
+                buttonPressed = v.getId();
+                if (Arrays.binarySearch(BUTTON_IDS, buttonPressed) > -1) {
+                    final TextView TextGood = (TextView) findViewById(R.id.GoodLabel);
+                    TextGood.setText("button");
+                    buttonIndex = Arrays.binarySearch(BUTTON_IDS, buttonPressed);
+                    Buttons();
+                }
+                if (Arrays.binarySearch(BUTTON_Square, buttonPressed) > -1) {
+                    final TextView TextGood = (TextView) findViewById(R.id.GoodLabel);
+                    TextGood.setText("square");
+                    buttonIndex = Arrays.binarySearch(BUTTON_Square, buttonPressed);
+                    Square();
+                }
+                if (Arrays.binarySearch(BUTTON_Wooden, buttonPressed) > -1) {
+                    final TextView TextGood = (TextView) findViewById(R.id.GoodLabel);
+                    TextGood.setText("wooden");
+                    buttonIndex = Arrays.binarySearch(BUTTON_Wooden, buttonPressed);
+                    Wooden();
+                }
+
+                if (buttonPressed == R.id.Response){
+                    if (questCount == pagePassword){
+                        String url = "https://www.facebook.com/primarymathspaper/posts/2278450288879217";
+                        Uri uriUrl = Uri.parse(url);
+                        Intent launchBrowser = new Intent(Intent.ACTION_VIEW, uriUrl);
+                        startActivity(launchBrowser);
+                    }
+                }
+
+
+            }
+        };
+
+
+        for (int i=0; i< BUTTON_IDS.length - 2; i++) {
+            ImageView button = (ImageView) findViewById(BUTTON_IDS[i]);
+            button.setOnClickListener(buttonListener); // maybe
+            if (i < 4){
+                buttonsMC[i] = button;
+                MCButtonColor[i] = (LinearLayout) findViewById(MCColorID[i]);
+            }
+        }
+
+        OkButton = findViewById(BUTTON_IDS[4]);
+        OkButton.setOnClickListener(buttonListener);
+        RestartButton = findViewById(BUTTON_IDS[5]);
+        RestartButton.setOnClickListener(buttonListener);
+        responseview.setOnClickListener(buttonListener); // maybe
+
+
+        for (int buttonID : BUTTON_Square) {
+            View button = (View) findViewById(buttonID);
+            button.setOnClickListener(buttonListener); // maybe
+        }
+
+        for (int i=0; i<BUTTON_Wooden.length; i++) {
+            TextView button = (TextView) findViewById(BUTTON_Wooden[i]);
+            button.setOnClickListener(buttonListener); // maybe
+            woodenNumber[i] = button;
+        }
+
+
+/*
+        ImageView img = (ImageView)findViewById(R.id.Response);
+        img.setOnClickListener(new View.OnClickListener(){
+            public void onClick(View v){
+                if (questCount == pagePassword) {
+                    Intent intent = new Intent();
+                    intent.setAction(Intent.ACTION_VIEW);
+                    intent.addCategory(Intent.CATEGORY_BROWSABLE);
+                    intent.setData(Uri.parse("https://www.facebook.com/primarymathspaper/posts/2278450288879217"));
+                    startActivity(intent);
+                }
+            }
+        });
+*/
+
+        SetText();
+
+    }
+
+
+    void Buttons(){
+
+        labelTag = buttonIndex;
+        if (labelTag == 5) {
+            startAgain();
+        }
+        //fill in blank format. when ok button is pressed, check answer
+        if (ansFormat == 1) {
+            if (labelTag == 4) {
+                if (answered == 0) {
+                    if (questCount == pagePassword) {
+
+                    }
+                    else {
+                        answeringAction();
+                    }
+                    checkBlank();
+                }
+                else {
+                    if (questCount == pagePassword) {
+                        okButton7();
+                    }
+                    else {
+                        okButton();
+                    }
+                    answered = 0;
+                    OkButton.setText("??");
+                    OkButton.setTextColor(0xff000000);
+                }
+            }
+        }
+        //MC format
+        else if (ansFormat == 0) {
+            //if year == savedYear || year == savedYear + 1 && month <= savedMonth {
+            //response to MC answer
+            if (answered == 0 && labelTag < 4 && questCount < totalQuest) {
+                answered = 1;
+                answeringAction();
+                pressAnswer();
+            }
+            //press okButton to next quest or subquest
+            else if (answered == 1 && labelTag == 4 && questCount < totalQuest) {
+                answered = 0;
+                okButton();
+            }
+            else {}
+
+        /*else {
+            for i in 1 ... 15 {
+                label[i].latex = ""}
+            label[1].latex = "?????????"
+        }*/
+        }
+
+    }
+
+
+    //actions for numbers are pressed at fill in the blank
+    void Square(){
+        //action only at fill in the blank
+        if (ansFormat == 1 && answered == 0){
+            //which view is pressed?
+            viewTag = buttonIndex;
+            //action when 0-9 is pressed and fraction wooden is chosen and not 3 digits yet
+            if (woodenChosen < 3 && woodenChosen > -1 && dataBase.nonFraction[questCount] == 0 && viewTag < 10){
+                if (woodenValue[woodenChosen] < 100) {
+                    woodenValue[woodenChosen] = woodenValue[woodenChosen] * 10 + viewTag;
+                    //not display 0 in any part of fraction
+                    if (woodenValue[woodenChosen] == 0) {
+                        woodenNumber[woodenChosen].setText("");
+                    }
+                    else {
+                        woodenNumber[woodenChosen].setText(String.format("%.0f", woodenValue[woodenChosen]));
+                    }
+                }
+            }
+            //when whole number is chosen
+            else if (woodenChosen == 0 && dataBase.nonFraction[questCount] == 1 && viewTag < 11) {
+                //add digit when fewer than 6 digits
+                if (wooden0Digit < 5) {
+                    //add decimal
+                    if (viewTag == 10) { // viewTag == 10 for "."
+                        //add decimal only when there is none
+                        if (wooden0DecNum == -1) {
+                            wooden0DecNum = 0;
+                            woodenNumber[0].setText(String.format("%.0f", woodenValue[woodenChosen]) + ".");
+                        }
+                    }
+                    //add number
+                    else {
+                        //add whole number
+                        wooden0Digit += 1;
+                        if (wooden0DecNum == -1) {
+                            woodenValue[woodenChosen] = woodenValue[woodenChosen] * 10 + viewTag;
+                            woodenNumber[woodenChosen].setText(String.format("%.0f", woodenValue[woodenChosen]));
+                        }
+                        //add decimal number
+                        else {
+                            wooden0LastValue = wooden0LastValue * 10;
+                            wooden0DecNum += 1;
+                            woodenValue[0] += viewTag / wooden0LastValue;
+                            String Format = "%." + String.valueOf(wooden0DecNum) +"f";
+                            woodenNumber[woodenChosen].setText(String.format(Format, woodenValue[woodenChosen]));
+                        }
+                    }
+                }
+            }
+            // when backbutton is pressed and decimal number wooden is chosen
+            else if (viewTag == 11 && woodenChosen == 0 && dataBase.nonFraction[questCount] ==1) {
+                //back the whole number
+                if (wooden0DecNum < 1){
+                    wooden0DecNum = -1;
+                    wooden0Digit -= 1;
+                    woodenValue[0] = (Double)Math.floor(woodenValue[0] / 10);
+                    woodenNumber[0].setText(String.format("%.0f", woodenValue[woodenChosen]));
+                    if (woodenValue[0] == 0) {
+                        woodenNumber[0].setText("");
+                        wooden0Digit = 0;
+                    }
+                }
+                //back the decimal number
+                else {
+                    wooden0LastValue = wooden0LastValue / 10;
+                    wooden0Digit -= 1;
+                    wooden0DecNum -= 1;
+                    woodenValue[0] = (Double) (Math.floor(woodenValue[0] * wooden0LastValue) / wooden0LastValue);
+                    String Format = "%." + String.valueOf(wooden0DecNum) +"f";
+                    woodenNumber[woodenChosen].setText(String.format(Format, woodenValue[woodenChosen]));
+                    if (wooden0DecNum == 0) {
+                        wooden0DecNum = -1;
+                    }
+                }
+            }
+            //back the 3 numbers of fraction
+            else if (viewTag == 11 && woodenChosen < 3 && woodenChosen > -1 ){
+                woodenValue[woodenChosen] = (Double)Math.floor(woodenValue[woodenChosen] / 10);
+                //not display 0 in any part of fraction
+                if (woodenValue[woodenChosen] == 0) {
+                    woodenNumber[woodenChosen].setText("");
+                }
+                else {
+                    woodenNumber[woodenChosen].setText(String.format("%.0f", woodenValue[woodenChosen]));
+                }
+            }
+        }
+    }
+
+    void Wooden(){
+        woodenChosen = buttonIndex;
+        //set the chosen wood brighter
+        for (int i = 0; i < 3; i++) {
+            woodenNumber[i].setBackgroundColor(0x00FFFFFF); // wooden textView background transparent
+        }
+        woodenNumber[woodenChosen].setBackgroundColor(0x66FFFFFF); //chosen textView background brighter with white color
+    }
+
+    void startAgain(){
+
+    }
+
+    void answeringAction(){
+
+    }
+
+    void checkBlank(){
+
+    }
+
+    void okButton7(){
+
+    }
+
+    void okButton(){
+
+    }
+
+    void pressAnswer(){
+
+    }
+
+
+
+    void SetText() {
+
+        ansFormat = dataBase.answerFormat[questCount];
+        responseview.setImageResource(R.drawable.facebook);
+        if (questCount == totalQuest) {
+            responseview.setImageResource(dataBase.responseview[totalQuest][0][0]);
+        }
+        questionview.setImageResource(dataBase.questionview[questCount][questSubcount]);
+        //self.view.addSubview(questionview)
+
+        if (ansFormat == 0) {
+
+            //not display the sentence that tells user to press woodboard first
+            TextID.setText("ID=" + String.valueOf(ID));
+
+            layoutMC.setWeightSum(4);
+            layoutWooden.setWeightSum(0);
+            layoutSquare.setWeightSum(0);
+            for (int i = 0; i < 4; i++) {
+                MCButtonColor[i].setBackgroundResource(R.drawable.orangebutton2);
+                //imageview[i].frame = buttonFrame[i]
+                //view.addSubview(imageview[i])
+                buttonsMC[i].setImageResource(dataBase.answerview[questCount][questSubcount][i-1]);
+                //answerview[i-1].frame = buttonFrame[i]
+                //view.addSubview(answerview[i-1])
+
+            }
+            OkButton.setTextColor(0x00FFFFFF);
+
+        }
+        else {
+/*
+            //tell user to press the woodboard first
+            label17.alpha = 1
+            wooden0LastValue = 1
+            wooden0DecNum = -1
+            wooden0Digit = 0
+            if questCount == 7 {
+                for i in 0 ... 4 {
+                    self.view.addSubview(facebook[i])
+                }
+            }
+
+            imageview[1].center.y = DH / 20 * 15.5
+            imageview[1].image = UIImage(named: "blueButton2")
+            answerview[0].center.y = DH / 20 * 15.5
+            answerview[0].image = UIImage(named: dataBase().answerview[questCount][questSubcount][0])
+            view.addSubview(answerview[0])
+
+            label14.textColor = UIColor.black
+            label14.text = "??"
+            for i in 0 ... 10 {
+                numberview[i].alpha = 1
+                squareNumber[i].alpha = 1
+            }
+            numberview[11].alpha = 1
+            for i in 0 ... 2 {
+                woodenview[i].alpha = 1
+                woodenNumber[i].alpha = 1
+            }
+            for i in 2 ... 4 {
+                imageview[i].alpha = 0
+                answerview[i-1].alpha = 0
+            }
+            if dataBase().nonFraction[questCount] == 1 {
+                numberview[10].alpha = 1
+                squareNumber[10].alpha = 1
+                numberview[11].center.x = DW / 20 * 7.7
+                numberview[10].isUserInteractionEnabled = true
+                woodenview[1].alpha = 0
+                woodenNumber[1].alpha = 0
+                woodenview[2].alpha = 0
+                woodenNumber[2].alpha = 0
+            }
+            else {
+                numberview[10].alpha = 0
+                squareNumber[10].alpha = 0
+                numberview[11].center.x = DW / 20 * 9.2
+                numberview[10].isUserInteractionEnabled = false
+                woodenview[1].alpha = 1
+                woodenNumber[1].alpha = 1
+                woodenview[2].alpha = 1
+                woodenNumber[2].alpha = 1
+
+            }*/
+        }
+    }
+
+}
+
